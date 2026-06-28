@@ -1,0 +1,17 @@
+name: gamebox
+
+packages:
+  - packages/**
+
+command:
+  bootstrap:
+    runPubGetInParallel: true
+
+scripts:
+  analyze:
+    run: melos exec -- "flutter analyze ."
+    description: Run flutter analyze in all packages.
+
+  test:
+    run: melos exec --dir-exists=test -- "flutter test"
+    description: Run flutter test in all packages that have tests.

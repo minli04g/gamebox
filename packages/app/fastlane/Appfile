@@ -1,0 +1,3 @@
+app_identifier('top.fancytech.gamebox')
+apple_id(ENV['ASC_ISSUER_ID']) # auth uses the App Store Connect API key, not Apple ID
+team_id('C9DKTHSYYB')
