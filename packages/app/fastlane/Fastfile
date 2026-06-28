@@ -39,8 +39,8 @@ platform :ios do
       UI.success("Registered bundle id #{APP_ID}")
     end
 
-    asc_key # sets the API key in lane context; produce reads it from there
     produce(
+      api_key: asc_key, # use the App Store Connect API key, not Apple-ID login
       app_identifier: APP_ID,
       app_name: 'GameBox',
       language: 'English',
