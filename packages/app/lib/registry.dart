@@ -3,6 +3,7 @@ import 'package:game_core/game_core.dart';
 import 'package:klotski/klotski.dart';
 import 'package:minesweeper/minesweeper.dart';
 import 'package:sudoku/sudoku.dart';
+import 'package:twenty_four/twenty_four.dart';
 
 /// The one place games are wired into the app. Adding a game = one line here.
 const List<Game> registeredGames = <Game>[
@@ -10,6 +11,7 @@ const List<Game> registeredGames = <Game>[
   Game2048(),
   MinesweeperGame(),
   KlotskiGame(),
+  TwentyFourGame(),
 ];
 
 Game? gameById(String id) {

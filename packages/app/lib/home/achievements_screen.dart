@@ -12,6 +12,7 @@ const Map<String, Map<String, String>> _catalog = {
   'game_2048': {'reach_2048': '拼出 2048'},
   'minesweeper': {'first_win': '首次扫雷', 'hard_win': '征服困难'},
   'klotski': {'solved': '成功突围', 'under100': '百步内通关'},
+  'twenty_four': {'first': '首次凑成 24', 'no_hint': '不看提示通关'},
 };
 
 class AchievementsScreen extends ConsumerWidget {

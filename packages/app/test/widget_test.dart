@@ -18,6 +18,7 @@ void main() {
     expect(find.text('2048'), findsOneWidget);
     expect(find.text('扫雷'), findsOneWidget);
     expect(find.text('华容道'), findsOneWidget);
+    expect(find.text('24点'), findsOneWidget);
     expect(find.text('更多游戏'), findsOneWidget); // coming-soon card
   });
 }
