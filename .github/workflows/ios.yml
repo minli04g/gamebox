@@ -44,9 +44,13 @@ jobs:
       # or a tag push). create_app / init_signing just talk to Apple's APIs.
       - name: Prepare Flutter packages
         if: ${{ github.event_name == 'push' || github.event.inputs.lane == 'beta' }}
-        # flutter build ipa (in the beta lane) handles pub get + pod install +
-        # archive + export as one consistent flow, so just resolve deps here.
-        run: flutter pub get
+        # Use pure CocoaPods: Flutter 3.44's Swift Package Manager double-
+        # integrates with the Podfile and desyncs Podfile.lock/Manifest.lock
+        # ("sandbox is not in sync"). flutter build ipa (beta lane) then owns
+        # pub get + pod install + archive + export as one consistent flow.
+        run: |
+          flutter config --no-enable-swift-package-manager
+          flutter pub get
 
       - uses: ruby/setup-ruby@v1
         with:
