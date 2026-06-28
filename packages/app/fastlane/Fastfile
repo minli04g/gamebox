@@ -15,11 +15,30 @@ platform :ios do
     )
   end
 
-  # ONE-TIME (run first, via workflow_dispatch): create the App Store Connect
-  # record + register the bundle id so TestFlight has a destination. Uses the
-  # ASC API key for both the App Store and Developer Portal sides.
-  desc 'Create the App Store Connect record + bundle id (run once)'
+  # ONE-TIME (run first, via workflow_dispatch): register the bundle id on the
+  # Developer Portal AND create the App Store Connect record so TestFlight has a
+  # destination. `produce`'s devcenter path uses legacy Apple-ID login (no 2FA
+  # in CI), so we register the bundle id ourselves via the App Store Connect API
+  # (which the API key supports), then let produce create just the ITC record.
+  desc 'Register bundle id + create the App Store Connect record (run once)'
   lane :create_app do
+    require 'spaceship'
+    require 'base64'
+
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+      key_id: ENV['ASC_KEY_ID'],
+      issuer_id: ENV['ASC_ISSUER_ID'],
+      key: Base64.decode64(ENV['ASC_KEY_CONTENT'])
+    )
+
+    existing = Spaceship::ConnectAPI::BundleId.all.find { |b| b.identifier == APP_ID }
+    if existing
+      UI.success("Bundle id #{APP_ID} already registered")
+    else
+      Spaceship::ConnectAPI::BundleId.create(name: 'GameBox', identifier: APP_ID, platform: 'IOS')
+      UI.success("Registered bundle id #{APP_ID}")
+    end
+
     asc_key # sets the API key in lane context; produce reads it from there
     produce(
       app_identifier: APP_ID,
@@ -27,7 +46,7 @@ platform :ios do
       language: 'English',
       sku: 'gamebox-ios',
       skip_itc: false,
-      skip_devcenter: false
+      skip_devcenter: true
     )
   end
 
