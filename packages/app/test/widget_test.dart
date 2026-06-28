@@ -16,6 +16,7 @@ void main() {
     expect(find.text('GameBox'), findsOneWidget);
     expect(find.text('数独'), findsOneWidget);
     expect(find.text('2048'), findsOneWidget);
+    expect(find.text('扫雷'), findsOneWidget);
     expect(find.text('更多游戏'), findsOneWidget); // coming-soon card
   });
 }

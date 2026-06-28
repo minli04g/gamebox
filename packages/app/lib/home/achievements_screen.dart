@@ -10,6 +10,7 @@ import '../state/app_providers.dart';
 const Map<String, Map<String, String>> _catalog = {
   'sudoku': {'first_win': '首次通关', 'hard_win': '征服困难'},
   'game_2048': {'reach_2048': '拼出 2048'},
+  'minesweeper': {'first_win': '首次扫雷', 'hard_win': '征服困难'},
 };
 
 class AchievementsScreen extends ConsumerWidget {
