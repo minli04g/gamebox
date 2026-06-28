@@ -39,14 +39,17 @@ jobs:
           cache: true
 
       - run: flutter --version
-      - run: flutter pub get
 
-      # Generate ios/Flutter/Generated.xcconfig + ephemeral files so the Xcode
-      # build phase can drive the Flutter assemble during the fastlane archive.
-      - run: flutter build ios --release --no-codesign --config-only
-
-      - run: pod install
-        working-directory: packages/app/ios
+      # The heavy Flutter/CocoaPods steps are only needed to archive (beta lane
+      # or a tag push). create_app / init_signing just talk to Apple's APIs.
+      - name: Prepare Flutter iOS build
+        if: ${{ github.event_name == 'push' || github.event.inputs.lane == 'beta' }}
+        run: |
+          flutter pub get
+          # Generate ios/Flutter/Generated.xcconfig so the Podfile + Xcode build
+          # phase can resolve FLUTTER_ROOT and drive the Flutter assemble.
+          flutter build ios --release --no-codesign --config-only
+          pod install --project-directory=ios
 
       - uses: ruby/setup-ruby@v1
         with:
