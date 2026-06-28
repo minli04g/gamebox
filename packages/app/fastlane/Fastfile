@@ -25,29 +25,36 @@ platform :ios do
     require 'spaceship'
     require 'base64'
 
+    # Authenticate Spaceship with the App Store Connect API key (no Apple-ID /
+    # 2FA), so everything works in a non-interactive CI shell.
     Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
       key_id: ENV['ASC_KEY_ID'],
       issuer_id: ENV['ASC_ISSUER_ID'],
       key: Base64.decode64(ENV['ASC_KEY_CONTENT'])
     )
 
-    existing = Spaceship::ConnectAPI::BundleId.all.find { |b| b.identifier == APP_ID }
-    if existing
+    # 1. Register the bundle id on the Developer Portal.
+    if Spaceship::ConnectAPI::BundleId.all.any? { |b| b.identifier == APP_ID }
       UI.success("Bundle id #{APP_ID} already registered")
     else
       Spaceship::ConnectAPI::BundleId.create(name: 'GameBox', identifier: APP_ID, platform: 'IOS')
       UI.success("Registered bundle id #{APP_ID}")
     end
 
-    produce(
-      api_key: asc_key, # use the App Store Connect API key, not Apple-ID login
-      app_identifier: APP_ID,
-      app_name: 'GameBox',
-      language: 'English',
-      sku: 'gamebox-ios',
-      skip_itc: false,
-      skip_devcenter: true
-    )
+    # 2. Create the App Store Connect app record (TestFlight destination).
+    if Spaceship::ConnectAPI::App.find(APP_ID)
+      UI.success("App Store Connect record for #{APP_ID} already exists")
+    else
+      Spaceship::ConnectAPI::App.create(
+        name: 'GameBox',
+        version_string: '1.0',
+        sku: 'gamebox-ios',
+        primary_locale: 'en-US',
+        bundle_id: APP_ID,
+        platforms: ['IOS']
+      )
+      UI.success("Created App Store Connect record for #{APP_ID}")
+    end
   end
 
   # ONE-TIME (run second): create the distribution cert (reused if it already
