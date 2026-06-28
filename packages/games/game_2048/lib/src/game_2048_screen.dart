@@ -143,10 +143,13 @@ class _Game2048ScreenState extends State<Game2048Screen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
               Row(
                 children: [
                   _scoreBox('分数', _score, tones),
@@ -179,7 +182,9 @@ class _Game2048ScreenState extends State<Game2048Screen> {
               const SizedBox(height: 12),
               Text('滑动合并相同数字，凑出 2048',
                   style: TextStyle(color: tones.muted, fontWeight: FontWeight.w700)),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

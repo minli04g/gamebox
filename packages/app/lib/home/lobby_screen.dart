@@ -38,9 +38,11 @@ class LobbyScreen extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
             sliver: SliverGrid(
+              // Max-extent keeps cards phone-sized and simply adds columns on
+              // wide screens (tablets/landscape) instead of ballooning them.
               gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 220,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
                 childAspectRatio: 0.95,

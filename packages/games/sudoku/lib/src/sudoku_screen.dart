@@ -286,16 +286,26 @@ class _SudokuScreenState extends State<SudokuScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildGrid(tones),
-                    const SizedBox(height: 18),
-                    _buildPad(tones),
-                    const SizedBox(height: 14),
-                    _buildTools(tones),
-                  ],
+              child: Center(
+                child: SingleChildScrollView(
+                  child: ConstrainedBox(
+                    // Keep the board phone-sized and centered on tablets so a
+                    // full-width square grid never overflows the viewport.
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildGrid(tones),
+                          const SizedBox(height: 18),
+                          _buildPad(tones),
+                          const SizedBox(height: 14),
+                          _buildTools(tones),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
