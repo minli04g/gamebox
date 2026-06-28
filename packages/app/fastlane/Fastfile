@@ -71,6 +71,7 @@ platform :ios do
     api_key = asc_key
     setup_ci
     match(type: 'appstore', app_identifier: APP_ID, api_key: api_key, readonly: true)
+
     # Flutter defaults to automatic signing; switch to manual with the
     # match-provisioned profile so the ephemeral runner reuses the stored cert.
     update_code_signing_settings(
@@ -82,17 +83,15 @@ platform :ios do
       profile_name: PROFILE,
       targets: ['Runner']
     )
-    build_app(
-      workspace: 'ios/Runner.xcworkspace', # CocoaPods workspace
-      scheme: 'Runner',                    # Flutter's default iOS scheme
-      export_method: 'app-store',
-      export_options: {
-        signingStyle: 'manual',
-        provisioningProfiles: {
-          APP_ID => PROFILE
-        }
-      }
-    )
-    upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: true)
+
+    # Let Flutter drive the whole iOS build (pub get + pod install + archive +
+    # export) so the CocoaPods sandbox stays in sync — gym archiving a
+    # separately pod-installed project hits "sandbox not in sync" on Flutter 3.44.
+    export_plist = File.expand_path('ExportOptions.plist', __dir__)
+    sh('flutter', 'build', 'ipa', '--release', '--export-options-plist', export_plist)
+
+    ipa = Dir.glob(File.expand_path('../build/ios/ipa/*.ipa', __dir__)).first
+    UI.user_error!('No IPA was produced by flutter build ipa') unless ipa
+    upload_to_testflight(api_key: api_key, ipa: ipa, skip_waiting_for_build_processing: true)
   end
 end

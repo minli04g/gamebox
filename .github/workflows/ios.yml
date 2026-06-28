@@ -42,14 +42,11 @@ jobs:
 
       # The heavy Flutter/CocoaPods steps are only needed to archive (beta lane
       # or a tag push). create_app / init_signing just talk to Apple's APIs.
-      - name: Prepare Flutter iOS build
+      - name: Prepare Flutter packages
         if: ${{ github.event_name == 'push' || github.event.inputs.lane == 'beta' }}
-        run: |
-          flutter pub get
-          # Generate ios/Flutter/Generated.xcconfig so the Podfile + Xcode build
-          # phase can resolve FLUTTER_ROOT and drive the Flutter assemble.
-          flutter build ios --release --no-codesign --config-only
-          pod install --project-directory=ios
+        # flutter build ipa (in the beta lane) handles pub get + pod install +
+        # archive + export as one consistent flow, so just resolve deps here.
+        run: flutter pub get
 
       - uses: ruby/setup-ruby@v1
         with:
