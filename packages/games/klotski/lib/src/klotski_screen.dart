@@ -20,6 +20,15 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
   bool _solved = false;
   int? _best;
 
+  // Live drag state. The dragged piece follows the finger along one locked
+  // axis, clamped to the cells it can legally reach, then snaps on release.
+  double _cell = 0;
+  String? _dragId;
+  int _dragAxis = 0; // 0 = undecided, 1 = horizontal, 2 = vertical
+  double _dragOnAxis = 0; // pixels along the locked axis (clamped)
+  double _pendDx = 0, _pendDy = 0; // accumulated until the axis locks
+  double _limMin = 0, _limMax = 0; // travel limits in pixels
+
   GameStorage get _store => widget.ctx.storage;
 
   @override
@@ -60,15 +69,68 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
     }
   }
 
-  void _swipe(Piece p, Offset delta) {
+  void _onPanStart(Piece p) {
     if (_solved) return;
-    final moved = delta.dx.abs() > delta.dy.abs()
-        ? _board.move(p, 0, delta.dx > 0 ? 1 : -1)
-        : _board.move(p, delta.dy > 0 ? 1 : -1, 0);
-    if (!moved) return;
-    if (widget.ctx.settings.hapticsOn) HapticFeedback.selectionClick();
-    setState(() {});
-    _afterMove();
+    _dragId = p.id;
+    _dragAxis = 0;
+    _dragOnAxis = 0;
+    _pendDx = 0;
+    _pendDy = 0;
+    _limMin = 0;
+    _limMax = 0;
+  }
+
+  void _onPanUpdate(Piece p, DragUpdateDetails d) {
+    if (_dragId != p.id || _cell == 0) return;
+    if (_dragAxis == 0) {
+      _pendDx += d.delta.dx;
+      _pendDy += d.delta.dy;
+      if (_pendDx.abs() < 4 && _pendDy.abs() < 4) return;
+      if (_pendDx.abs() >= _pendDy.abs()) {
+        _dragAxis = 1;
+        _limMax = _board.maxSlide(p, 0, 1) * _cell;
+        _limMin = -_board.maxSlide(p, 0, -1) * _cell;
+        _dragOnAxis = _pendDx;
+      } else {
+        _dragAxis = 2;
+        _limMax = _board.maxSlide(p, 1, 0) * _cell;
+        _limMin = -_board.maxSlide(p, -1, 0) * _cell;
+        _dragOnAxis = _pendDy;
+      }
+    } else {
+      _dragOnAxis += _dragAxis == 1 ? d.delta.dx : d.delta.dy;
+    }
+    setState(() => _dragOnAxis = _dragOnAxis.clamp(_limMin, _limMax));
+  }
+
+  void _onPanEnd(Piece p, DragEndDetails d) {
+    if (_dragId != p.id) return;
+    final axis = _dragAxis;
+    var cells = axis == 0 ? 0 : (_dragOnAxis / _cell).round();
+    // Quick flick: register one cell even if the finger barely travelled.
+    if (cells == 0 && axis != 0) {
+      final v = axis == 1
+          ? d.velocity.pixelsPerSecond.dx
+          : d.velocity.pixelsPerSecond.dy;
+      if (v.abs() > 250) cells = v > 0 ? 1 : -1;
+    }
+    final dr = axis == 2 ? (cells > 0 ? 1 : -1) : 0;
+    final dc = axis == 1 ? (cells > 0 ? 1 : -1) : 0;
+    var moved = 0;
+    setState(() {
+      if (axis != 0 && cells != 0) {
+        moved = _board.slide(p, dr, dc, cells.abs());
+      }
+      _dragId = null;
+      _dragAxis = 0;
+      _dragOnAxis = 0;
+      _pendDx = 0;
+      _pendDy = 0;
+    });
+    if (moved > 0) {
+      if (widget.ctx.settings.hapticsOn) HapticFeedback.selectionClick();
+      _afterMove();
+    }
   }
 
   Future<void> _afterMove() async {
@@ -164,6 +226,7 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cell = constraints.maxWidth / KlotskiBoard.cols;
+        _cell = cell;
         final boardW = cell * KlotskiBoard.cols;
         final boardH = cell * KlotskiBoard.rows;
         const gap = 3.0;
@@ -179,26 +242,32 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
               child: Stack(
                 children: [
                   for (final p in _board.pieces)
-                    AnimatedPositioned(
-                      key: ValueKey(p.id),
-                      duration: const Duration(milliseconds: 130),
-                      curve: Curves.easeOut,
-                      left: p.c * cell,
-                      top: p.r * cell,
-                      width: p.w * cell,
-                      height: p.h * cell,
-                      child: Padding(
-                        padding: const EdgeInsets.all(gap),
-                        child: GestureDetector(
-                          onPanEnd: (d) {
-                            final v = d.velocity.pixelsPerSecond;
-                            if (v.distance < 80) return;
-                            _swipe(p, Offset(v.dx, v.dy));
-                          },
-                          child: _PieceView(piece: p),
+                    () {
+                      final dragging = _dragId == p.id;
+                      var left = p.c * cell, top = p.r * cell;
+                      if (dragging && _dragAxis == 1) left += _dragOnAxis;
+                      if (dragging && _dragAxis == 2) top += _dragOnAxis;
+                      return AnimatedPositioned(
+                        key: ValueKey(p.id),
+                        // No animation while the finger is dragging this piece
+                        // (1:1 follow); animate the snap on release.
+                        duration: Duration(milliseconds: dragging ? 0 : 130),
+                        curve: Curves.easeOut,
+                        left: left,
+                        top: top,
+                        width: p.w * cell,
+                        height: p.h * cell,
+                        child: Padding(
+                          padding: const EdgeInsets.all(gap),
+                          child: GestureDetector(
+                            onPanStart: (_) => _onPanStart(p),
+                            onPanUpdate: (d) => _onPanUpdate(p, d),
+                            onPanEnd: (d) => _onPanEnd(p, d),
+                            child: _PieceView(piece: p),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    }(),
                 ],
               ),
             ),

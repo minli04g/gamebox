@@ -103,6 +103,32 @@ class KlotskiBoard {
     return true;
   }
 
+  /// How many cells [p] can slide in unit direction ([dr],[dc]) before being
+  /// blocked. Does not mutate the board.
+  int maxSlide(Piece p, int dr, int dc) {
+    final sr = p.r, sc = p.c;
+    var steps = 0;
+    while (canMove(p, dr, dc)) {
+      p.r += dr;
+      p.c += dc;
+      steps++;
+    }
+    p.r = sr;
+    p.c = sc;
+    return steps;
+  }
+
+  /// Slide [p] up to [cells] cells in unit direction ([dr],[dc]). Returns the
+  /// number of cells actually moved (each counts toward [moves]).
+  int slide(Piece p, int dr, int dc, int cells) {
+    var done = 0;
+    for (var i = 0; i < cells; i++) {
+      if (!move(p, dr, dc)) break;
+      done++;
+    }
+    return done;
+  }
+
   Piece? pieceAt(int r, int c) {
     for (final p in pieces) {
       if (r >= p.r && r < p.r + p.h && c >= p.c && c < p.c + p.w) return p;

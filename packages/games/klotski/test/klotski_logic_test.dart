@@ -60,6 +60,26 @@ void main() {
     });
   });
 
+  group('multi-cell slide', () {
+    test('maxSlide reports reachable distance', () {
+      final b = hengDaoLiMa();
+      final z3 = b.pieces.firstWhere((p) => p.id == 'z3'); // (4,0)
+      // (4,1) and (4,2) are empty -> can slide 2 cells right.
+      expect(b.maxSlide(z3, 0, 1), 2);
+      expect(b.maxSlide(z3, 0, -1), 0); // wall on the left
+      expect(b.maxSlide(z3, -1, 0), 0); // 马超 above
+    });
+
+    test('slide moves up to the requested cells and counts each', () {
+      final b = hengDaoLiMa();
+      final z3 = b.pieces.firstWhere((p) => p.id == 'z3');
+      final moved = b.slide(z3, 0, 1, 5); // asks 5, only 2 possible
+      expect(moved, 2);
+      expect(z3.c, 2);
+      expect(b.moves, 2);
+    });
+  });
+
   group('win detection', () {
     test('isSolved when 曹操 reaches bottom centre', () {
       final b = hengDaoLiMa();
