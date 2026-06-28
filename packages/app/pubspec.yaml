@@ -22,6 +22,26 @@ dependencies:
     path: ../games/klotski
   twenty_four:
     path: ../games/twenty_four
+  tic_tac_toe:
+    path: ../games/tic_tac_toe
+  gomoku:
+    path: ../games/gomoku
+  reversi:
+    path: ../games/reversi
+  snake:
+    path: ../games/snake
+  memory_match:
+    path: ../games/memory_match
+  fifteen:
+    path: ../games/fifteen
+  peg_solitaire:
+    path: ../games/peg_solitaire
+  bulls_cows:
+    path: ../games/bulls_cows
+  simon:
+    path: ../games/simon
+  sokoban:
+    path: ../games/sokoban
   flutter_riverpod: ^2.5.1
   go_router: ^14.2.7
   hive: ^2.2.3

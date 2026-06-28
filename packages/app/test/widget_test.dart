@@ -13,12 +13,10 @@ void main() {
       ),
     );
 
+    // Title plus the first few cards. Later cards (and the coming-soon card)
+    // scroll off-screen with 15 games in the lazy grid, so we don't assert them.
     expect(find.text('GameBox'), findsOneWidget);
     expect(find.text('数独'), findsOneWidget);
     expect(find.text('2048'), findsOneWidget);
-    expect(find.text('扫雷'), findsOneWidget);
-    expect(find.text('华容道'), findsOneWidget);
-    expect(find.text('24点'), findsOneWidget);
-    expect(find.text('更多游戏'), findsOneWidget); // coming-soon card
   });
 }
