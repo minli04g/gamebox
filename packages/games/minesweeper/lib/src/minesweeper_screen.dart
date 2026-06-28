@@ -105,6 +105,9 @@ class _MinesweeperScreenState extends State<MinesweeperScreen> {
     setState(() {
       if (_flagMode) {
         _board.toggleFlag(r, c);
+      } else if (cell.revealed) {
+        // Tap a revealed number to chord-open its neighbours.
+        _board.chord(r, c, _rng);
       } else {
         if (cell.flagged) return;
         _board.reveal(r, c, _rng);

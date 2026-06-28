@@ -138,6 +138,29 @@ class MineBoard {
     return newly;
   }
 
+  /// "Chord": tap an already-revealed number whose adjacent flag count equals
+  /// its value to reveal all remaining un-flagged neighbours at once (each
+  /// reveal flood-fills, so this cascades). If a flag is wrong, the uncovered
+  /// mine explodes — same as classic Minesweeper. Returns newly revealed cells.
+  List<Point<int>> chord(int r, int c, Random rng) {
+    final cell = cells[r][c];
+    if (!cell.revealed || cell.adjacent == 0) return const [];
+    var flags = 0;
+    for (final p in neighbors(r, c)) {
+      if (cells[p.y][p.x].flagged) flags++;
+    }
+    if (flags != cell.adjacent) return const [];
+
+    final newly = <Point<int>>[];
+    for (final p in neighbors(r, c)) {
+      final nc = cells[p.y][p.x];
+      if (!nc.revealed && !nc.flagged) {
+        newly.addAll(reveal(p.y, p.x, rng));
+      }
+    }
+    return newly;
+  }
+
   void toggleFlag(int r, int c) {
     final cell = cells[r][c];
     if (cell.revealed) return;

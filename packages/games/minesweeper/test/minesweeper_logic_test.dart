@@ -95,6 +95,50 @@ void main() {
     });
   });
 
+  group('chord', () {
+    MineBoard threeByThreeOneMine() {
+      final b = MineBoard(rows: 3, cols: 3, mineCount: 1);
+      b.minesPlaced = true;
+      b.cells[0][0].mine = true;
+      for (var r = 0; r < 3; r++) {
+        for (var c = 0; c < 3; c++) {
+          if (b.cells[r][c].mine) continue;
+          var n = 0;
+          for (final p in b.neighbors(r, c)) {
+            if (b.cells[p.y][p.x].mine) n++;
+          }
+          b.cells[r][c].adjacent = n;
+        }
+      }
+      return b;
+    }
+
+    test('opens unflagged neighbours when flags satisfy the number', () {
+      final b = threeByThreeOneMine();
+      b.reveal(1, 1, Random(0)); // center has adjacent 1, reveals only itself
+      b.toggleFlag(0, 0); // flag the actual mine
+      b.chord(1, 1, Random(0));
+      expect(b.exploded, isFalse);
+      expect(b.isWon, isTrue); // all 8 non-mine cells now revealed
+    });
+
+    test('does nothing when flag count != number', () {
+      final b = threeByThreeOneMine();
+      b.reveal(1, 1, Random(0));
+      final newly = b.chord(1, 1, Random(0)); // no flags placed yet
+      expect(newly, isEmpty);
+      expect(b.cells[0][1].revealed, isFalse);
+    });
+
+    test('a wrong flag makes chord explode', () {
+      final b = threeByThreeOneMine();
+      b.reveal(1, 1, Random(0));
+      b.toggleFlag(0, 1); // wrong flag (no mine here)
+      b.chord(1, 1, Random(0)); // flags==1==number, opens (0,0) which is a mine
+      expect(b.exploded, isTrue);
+    });
+  });
+
   group('serialization', () {
     test('round-trips board state', () {
       final b = MineBoard(rows: 6, cols: 6, mineCount: 6);
