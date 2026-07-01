@@ -269,7 +269,7 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
 
   String _levelSubtitle(KlotskiLevel level) {
     final best = _bestMovesByLevel[level.id];
-    final prefix = '${level.category} · ${level.description}';
+    final prefix = '第 ${level.name} 关 · ${level.category}';
     if (best == null) return prefix;
     return '$prefix · 最佳 $best 步';
   }
@@ -282,7 +282,7 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
         title: TextButton(
           onPressed: _pickLevel,
           child: Text(
-            '华容道 · ${_level.name}',
+            '华容道 · 第 ${_level.name} 关',
             style: const TextStyle(fontWeight: FontWeight.w800, color: _accent),
           ),
         ),

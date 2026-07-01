@@ -91,6 +91,14 @@ void main() {
   });
 
   group('packaged levels', () {
+    test('contains 50 numbered levels', () {
+      expect(KlotskiLevel.levels.length, 50);
+      expect(
+        [for (final level in KlotskiLevel.levels) level.name],
+        [for (var i = 1; i <= 50; i++) '$i'],
+      );
+    });
+
     test('cover one through five horizontal-general variants', () {
       final counts = {
         for (final level in KlotskiLevel.levels) level.horizontalGenerals,
