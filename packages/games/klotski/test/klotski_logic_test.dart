@@ -90,6 +90,45 @@ void main() {
     });
   });
 
+  group('packaged levels', () {
+    test('cover one through five horizontal-general variants', () {
+      final counts = {
+        for (final level in KlotskiLevel.levels) level.horizontalGenerals,
+      };
+
+      expect(counts.containsAll({1, 2, 3, 4, 5}), isTrue);
+    });
+
+    test('all packaged levels are valid 4x5 boards', () {
+      for (final level in KlotskiLevel.levels) {
+        final b = level.createBoard();
+        final occupied = <int>{};
+
+        expect(b.pieces.length, 10, reason: level.name);
+        expect(b.isSolved, isFalse, reason: level.name);
+
+        for (final p in b.pieces) {
+          expect(p.r, greaterThanOrEqualTo(0), reason: level.name);
+          expect(p.c, greaterThanOrEqualTo(0), reason: level.name);
+          expect(p.r + p.h, lessThanOrEqualTo(KlotskiBoard.rows),
+              reason: level.name);
+          expect(p.c + p.w, lessThanOrEqualTo(KlotskiBoard.cols),
+              reason: level.name);
+
+          for (var dr = 0; dr < p.h; dr++) {
+            for (var dc = 0; dc < p.w; dc++) {
+              expect(occupied.add((p.r + dr) * KlotskiBoard.cols + p.c + dc),
+                  isTrue,
+                  reason: level.name);
+            }
+          }
+        }
+
+        expect(occupied.length, 18, reason: level.name);
+      }
+    });
+  });
+
   group('serialization', () {
     test('round-trips board state', () {
       final b = hengDaoLiMa();

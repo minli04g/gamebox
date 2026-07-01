@@ -161,6 +161,197 @@ class KlotskiBoard {
       );
 }
 
+class PieceSpec {
+  const PieceSpec({
+    required this.id,
+    required this.label,
+    required this.w,
+    required this.h,
+    required this.r,
+    required this.c,
+    required this.colorValue,
+  });
+
+  final String id;
+  final String label;
+  final int w;
+  final int h;
+  final int r;
+  final int c;
+  final int colorValue;
+
+  Piece create() => Piece(
+        id: id,
+        label: label,
+        w: w,
+        h: h,
+        r: r,
+        c: c,
+        colorValue: colorValue,
+      );
+}
+
+class KlotskiLevel {
+  const KlotskiLevel({
+    required this.id,
+    required this.name,
+    required this.description,
+    required List<PieceSpec> pieces,
+  }) : _pieces = pieces;
+
+  static const String defaultId = 'heng_dao_li_ma';
+
+  static final List<KlotskiLevel> levels = [
+    KlotskiLevel(
+      id: defaultId,
+      name: '横刀立马',
+      description: '经典一横布局，最优 81 步',
+      pieces: [
+        _cao(0, 1),
+        _v('zhang', '张飞', 0, 0),
+        _v('zhao', '赵云', 0, 3),
+        _v('ma', '马超', 2, 0),
+        _v('huang', '黄忠', 2, 3),
+        _h('guan', '关羽', 2, 1),
+        _z('z1', 3, 1),
+        _z('z2', 3, 2),
+        _z('z3', 4, 0),
+        _z('z4', 4, 3),
+      ],
+    ),
+    KlotskiLevel(
+      id: 'cha_chi_nan_fei',
+      name: '插翅难飞',
+      description: '二横布局，出口两侧仍被竖将封住',
+      pieces: [
+        _cao(0, 1),
+        _v('zhang', '张飞', 0, 0),
+        _h('guan', '关羽', 2, 0),
+        _h('zhao', '赵云', 3, 1),
+        _v('ma', '马超', 3, 0),
+        _v('huang', '黄忠', 3, 3),
+        _z('z1', 0, 3),
+        _z('z2', 1, 3),
+        _z('z3', 2, 2),
+        _z('z4', 2, 3),
+      ],
+    ),
+    KlotskiLevel(
+      id: 'ceng_ceng_she_fang',
+      name: '层层设防',
+      description: '三横布局，层层横将挡在下路',
+      pieces: [
+        _cao(0, 1),
+        _v('zhang', '张飞', 0, 0),
+        _v('zhao', '赵云', 0, 3),
+        _h('guan', '关羽', 2, 1),
+        _h('ma', '马超', 3, 1),
+        _h('huang', '黄忠', 4, 1),
+        _z('z1', 2, 0),
+        _z('z2', 2, 3),
+        _z('z3', 3, 0),
+        _z('z4', 3, 3),
+      ],
+    ),
+    KlotskiLevel(
+      id: 'shui_xie_bu_tong',
+      name: '水泄不通',
+      description: '四横布局，下方被横将完全压住',
+      pieces: [
+        _cao(0, 1),
+        _v('zhao', '赵云', 0, 3),
+        _h('guan', '关羽', 2, 0),
+        _h('zhang', '张飞', 2, 2),
+        _h('ma', '马超', 3, 0),
+        _h('huang', '黄忠', 3, 2),
+        _z('z1', 0, 0),
+        _z('z2', 1, 0),
+        _z('z3', 4, 0),
+        _z('z4', 4, 3),
+      ],
+    ),
+    KlotskiLevel(
+      id: 'wu_heng_ding_shi',
+      name: '五横定式',
+      description: '五将全横，先把下方横将错开',
+      pieces: [
+        _cao(0, 1),
+        _h('guan', '关羽', 2, 0),
+        _h('zhang', '张飞', 2, 2),
+        _h('ma', '马超', 3, 0),
+        _h('huang', '黄忠', 3, 2),
+        _h('zhao', '赵云', 4, 1),
+        _z('z1', 0, 0),
+        _z('z2', 0, 3),
+        _z('z3', 1, 0),
+        _z('z4', 1, 3),
+      ],
+    ),
+    KlotskiLevel(
+      id: 'tun_bing_dong_lu',
+      name: '屯兵东路',
+      description: '曹操偏左的一横变阵',
+      pieces: [
+        _cao(0, 0),
+        _v('zhang', '张飞', 0, 2),
+        _v('zhao', '赵云', 0, 3),
+        _h('guan', '关羽', 2, 0),
+        _v('ma', '马超', 3, 0),
+        _v('huang', '黄忠', 3, 1),
+        _z('z1', 2, 2),
+        _z('z2', 2, 3),
+        _z('z3', 3, 2),
+        _z('z4', 3, 3),
+      ],
+    ),
+    KlotskiLevel(
+      id: 'shou_kou_ru_ping',
+      name: '守口如瓶',
+      description: '二横布局，横将直接堵住出口',
+      pieces: [
+        _cao(0, 1),
+        _v('zhang', '张飞', 0, 0),
+        _v('zhao', '赵云', 0, 3),
+        _v('ma', '马超', 2, 1),
+        _h('guan', '关羽', 4, 0),
+        _h('huang', '黄忠', 4, 2),
+        _z('z1', 2, 0),
+        _z('z2', 2, 3),
+        _z('z3', 3, 0),
+        _z('z4', 3, 3),
+      ],
+    ),
+  ];
+
+  static KlotskiLevel get defaultLevel => levels.first;
+
+  static KlotskiLevel byId(String? id) => levels.firstWhere(
+        (level) => level.id == id,
+        orElse: () => defaultLevel,
+      );
+
+  final String id;
+  final String name;
+  final String description;
+  final List<PieceSpec> _pieces;
+
+  int get horizontalGenerals =>
+      _pieces.where((piece) => piece.w == 2 && piece.h == 1).length;
+
+  String get category => switch (horizontalGenerals) {
+        0 => '全竖局',
+        1 => '一横局',
+        2 => '二横局',
+        3 => '三横局',
+        4 => '四横局',
+        5 => '五横局',
+        _ => '$horizontalGenerals 横局',
+      };
+
+  KlotskiBoard createBoard() =>
+      KlotskiBoard(pieces: [for (final p in _pieces) p.create()]);
+}
+
 /// The iconic 横刀立马 starting layout (optimal solution: 81 moves).
 ///
 /// ```
@@ -170,15 +361,49 @@ class KlotskiBoard {
 /// 马 卒 卒 黄
 /// 卒 .  .  卒
 /// ```
-KlotskiBoard hengDaoLiMa() => KlotskiBoard(pieces: [
-      Piece(id: 'cao', label: '曹操', w: 2, h: 2, r: 0, c: 1, colorValue: 0xFFD64550),
-      Piece(id: 'zhang', label: '张飞', w: 1, h: 2, r: 0, c: 0, colorValue: 0xFF4F86C6),
-      Piece(id: 'zhao', label: '赵云', w: 1, h: 2, r: 0, c: 3, colorValue: 0xFF4F86C6),
-      Piece(id: 'ma', label: '马超', w: 1, h: 2, r: 2, c: 0, colorValue: 0xFF4F86C6),
-      Piece(id: 'huang', label: '黄忠', w: 1, h: 2, r: 2, c: 3, colorValue: 0xFF4F86C6),
-      Piece(id: 'guan', label: '关羽', w: 2, h: 1, r: 2, c: 1, colorValue: 0xFFE39A3B),
-      Piece(id: 'z1', label: '卒', w: 1, h: 1, r: 3, c: 1, colorValue: 0xFF8C9BAB),
-      Piece(id: 'z2', label: '卒', w: 1, h: 1, r: 3, c: 2, colorValue: 0xFF8C9BAB),
-      Piece(id: 'z3', label: '卒', w: 1, h: 1, r: 4, c: 0, colorValue: 0xFF8C9BAB),
-      Piece(id: 'z4', label: '卒', w: 1, h: 1, r: 4, c: 3, colorValue: 0xFF8C9BAB),
-    ]);
+KlotskiBoard hengDaoLiMa() => KlotskiLevel.defaultLevel.createBoard();
+
+const int _caoColor = 0xFFD64550;
+const int _generalColor = 0xFF4F86C6;
+const int _guanColor = 0xFFE39A3B;
+const int _soldierColor = 0xFF8C9BAB;
+
+PieceSpec _cao(int r, int c) => PieceSpec(
+      id: 'cao',
+      label: '曹操',
+      w: 2,
+      h: 2,
+      r: r,
+      c: c,
+      colorValue: _caoColor,
+    );
+
+PieceSpec _v(String id, String label, int r, int c) => PieceSpec(
+      id: id,
+      label: label,
+      w: 1,
+      h: 2,
+      r: r,
+      c: c,
+      colorValue: _generalColor,
+    );
+
+PieceSpec _h(String id, String label, int r, int c) => PieceSpec(
+      id: id,
+      label: label,
+      w: 2,
+      h: 1,
+      r: r,
+      c: c,
+      colorValue: id == 'guan' ? _guanColor : _generalColor,
+    );
+
+PieceSpec _z(String id, int r, int c) => PieceSpec(
+      id: id,
+      label: '卒',
+      w: 1,
+      h: 1,
+      r: r,
+      c: c,
+      colorValue: _soldierColor,
+    );

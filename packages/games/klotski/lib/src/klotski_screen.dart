@@ -16,9 +16,10 @@ class KlotskiScreen extends StatefulWidget {
 }
 
 class _KlotskiScreenState extends State<KlotskiScreen> {
-  late KlotskiBoard _board = hengDaoLiMa();
+  KlotskiLevel _level = KlotskiLevel.defaultLevel;
+  late KlotskiBoard _board = _level.createBoard();
   bool _solved = false;
-  int? _best;
+  Map<String, int> _bestMovesByLevel = {};
 
   // Live drag state. The dragged piece follows the finger along one locked
   // axis, clamped to the cells it can legally reach, then snaps on release.
@@ -30,6 +31,7 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
   double _limMin = 0, _limMax = 0; // travel limits in pixels
 
   GameStorage get _store => widget.ctx.storage;
+  int? get _best => _bestMovesByLevel[_level.id];
 
   @override
   void initState() {
@@ -41,23 +43,57 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
     final stats = await _store.getJson('stats');
     final save = await _store.getJson('save');
     setState(() {
-      _best = stats?['bestMoves'] as int?;
-      if (save != null && save['pieces'] != null) {
-        _board = KlotskiBoard.fromJson(save.cast<String, dynamic>());
+      _bestMovesByLevel = _bestMovesFromStats(stats);
+      if (save != null) {
+        _level = KlotskiLevel.byId(save['levelId'] as String?);
+        final rawBoard = save['board'];
+        final boardJson = rawBoard is Map
+            ? rawBoard.cast<String, dynamic>()
+            : save.cast<String, dynamic>();
+        if (boardJson['pieces'] != null) {
+          _board = KlotskiBoard.fromJson(boardJson);
+        }
         _solved = _board.isSolved;
       }
     });
   }
 
+  Map<String, int> _bestMovesFromStats(Map<String, dynamic>? stats) {
+    final result = <String, int>{};
+    final raw = (stats?['bestMovesByLevel'] as Map?) ?? const {};
+    raw.forEach((key, value) {
+      if (key is String && value is num) result[key] = value.toInt();
+    });
+    final legacyBest = stats?['bestMoves'] as int?;
+    if (legacyBest != null) {
+      result.putIfAbsent(KlotskiLevel.defaultId, () => legacyBest);
+    }
+    return result;
+  }
+
   void _reset() {
     setState(() {
-      _board = hengDaoLiMa();
+      _board = _level.createBoard();
       _solved = false;
+      _clearDrag();
     });
     _persist();
   }
 
-  Future<void> _persist() async => _store.putJson('save', _board.toJson());
+  void _startLevel(KlotskiLevel level) {
+    setState(() {
+      _level = level;
+      _board = level.createBoard();
+      _solved = false;
+      _clearDrag();
+    });
+    _persist();
+  }
+
+  Future<void> _persist() async => _store.putJson('save', {
+        'levelId': _level.id,
+        'board': _board.toJson(),
+      });
 
   Future<void> _unlock(String id) async {
     final data = await _store.getJson('achievements');
@@ -72,6 +108,16 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
   void _onPanStart(Piece p) {
     if (_solved) return;
     _dragId = p.id;
+    _dragAxis = 0;
+    _dragOnAxis = 0;
+    _pendDx = 0;
+    _pendDy = 0;
+    _limMin = 0;
+    _limMax = 0;
+  }
+
+  void _clearDrag() {
+    _dragId = null;
     _dragAxis = 0;
     _dragOnAxis = 0;
     _pendDx = 0;
@@ -139,24 +185,35 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
       return;
     }
     setState(() => _solved = true);
-    final stats = await _store.getJson('stats') ?? {};
-    final prev = stats['bestMoves'] as int?;
-    final best = (prev == null || _board.moves < prev) ? _board.moves : prev;
-    await _store.putJson('stats', {'bestMoves': best, 'solves': (stats['solves'] as int? ?? 0) + 1});
+    final stats = await _store.getJson('stats') ?? <String, dynamic>{};
+    final bestMovesByLevel = _bestMovesFromStats(stats);
+    final prev = bestMovesByLevel[_level.id];
+    final isNewBest = prev == null || _board.moves < prev;
+    if (isNewBest) bestMovesByLevel[_level.id] = _board.moves;
+    final nextStats = {
+      ...stats,
+      'bestMovesByLevel': bestMovesByLevel,
+      'solves': (stats['solves'] as int? ?? 0) + 1,
+    };
+    final classicBest = bestMovesByLevel[KlotskiLevel.defaultId];
+    if (classicBest != null) nextStats['bestMoves'] = classicBest;
+    await _store.putJson('stats', nextStats);
     await _unlock('solved');
-    if (_board.moves <= 100) await _unlock('under100');
+    if (_level.id == KlotskiLevel.defaultId && _board.moves <= 100) {
+      await _unlock('under100');
+    }
     await _store.delete('save');
-    setState(() => _best = best);
-    if (mounted) _winDialog();
+    setState(() => _bestMovesByLevel = bestMovesByLevel);
+    if (mounted) _winDialog(isNewBest);
   }
 
-  void _winDialog() {
+  void _winDialog(bool isNewBest) {
     showDialog<void>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('🎉 曹操突围！'),
-        content: Text('用了 ${_board.moves} 步'
-            '${_best == _board.moves ? ' · 新纪录！' : ''}'),
+        content: Text('${_level.name} · 用了 ${_board.moves} 步'
+            '${isNewBest ? ' · 新纪录！' : ''}'),
         actions: [
           TextButton(
             onPressed: () {
@@ -170,13 +227,65 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
     );
   }
 
+  Future<void> _pickLevel() async {
+    final choice = await showModalBottomSheet<KlotskiLevel>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(c).height * 0.75,
+          ),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '选择关卡',
+                    style: Theme.of(c).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+              ),
+              for (final level in KlotskiLevel.levels)
+                ListTile(
+                  title: Text(level.name),
+                  subtitle: Text(_levelSubtitle(level)),
+                  trailing:
+                      level.id == _level.id ? const Icon(Icons.check) : null,
+                  onTap: () => Navigator.pop(c, level),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice != null && choice.id != _level.id) _startLevel(choice);
+  }
+
+  String _levelSubtitle(KlotskiLevel level) {
+    final best = _bestMovesByLevel[level.id];
+    final prefix = '${level.category} · ${level.description}';
+    if (best == null) return prefix;
+    return '$prefix · 最佳 $best 步';
+  }
+
   @override
   Widget build(BuildContext context) {
     final tones = Theme.of(context).extension<GameBoxTones>()!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('华容道 · 横刀立马',
-            style: TextStyle(fontWeight: FontWeight.w800, color: _accent)),
+        title: TextButton(
+          onPressed: _pickLevel,
+          child: Text(
+            '华容道 · ${_level.name}',
+            style: const TextStyle(fontWeight: FontWeight.w800, color: _accent),
+          ),
+        ),
       ),
       body: SafeArea(
         child: Center(
