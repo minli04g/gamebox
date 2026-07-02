@@ -19,6 +19,7 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
   KlotskiLevel _level = KlotskiLevel.defaultLevel;
   late KlotskiBoard _board = _level.createBoard();
   bool _solved = false;
+  bool _showLevelList = true;
   Map<String, int> _bestMovesByLevel = {};
 
   // Live drag state. The dragged piece follows the finger along one locked
@@ -52,6 +53,7 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
             : save.cast<String, dynamic>();
         if (boardJson['pieces'] != null) {
           _board = KlotskiBoard.fromJson(boardJson);
+          _showLevelList = false;
         }
         _solved = _board.isSolved;
       }
@@ -85,6 +87,7 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
       _level = level;
       _board = level.createBoard();
       _solved = false;
+      _showLevelList = false;
       _clearDrag();
     });
     _persist();
@@ -218,6 +221,13 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(c);
+              setState(() => _showLevelList = true);
+            },
+            child: const Text('选择关卡'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(c);
               _reset();
             },
             child: const Text('再来一局'),
@@ -236,12 +246,11 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
           constraints: BoxConstraints(
             maxHeight: MediaQuery.sizeOf(c).height * 0.75,
           ),
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Align(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+            child: Column(
+              children: [
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     '选择关卡',
@@ -250,73 +259,99 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
                         ),
                   ),
                 ),
-              ),
-              for (final level in KlotskiLevel.levels)
-                ListTile(
-                  title: Text(level.name),
-                  subtitle: Text(_levelSubtitle(level)),
-                  trailing:
-                      level.id == _level.id ? const Icon(Icons.check) : null,
-                  onTap: () => Navigator.pop(c, level),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _LevelGrid(
+                    bestMovesByLevel: _bestMovesByLevel,
+                    currentLevelId: _level.id,
+                    onLevelTap: (level) => Navigator.pop(c, level),
+                  ),
                 ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
-    if (choice != null && choice.id != _level.id) _startLevel(choice);
+    if (choice != null) _startLevel(choice);
   }
 
-  String _levelSubtitle(KlotskiLevel level) {
-    final best = _bestMovesByLevel[level.id];
-    final prefix = '第 ${level.name} 关 · ${level.category}';
-    if (best == null) return prefix;
-    return '$prefix · 最佳 $best 步';
-  }
+  Widget _buildLevelListPage(GameBoxTones tones) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '选择关卡',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: tones.ink,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '没有未完成的局时，从这里开始新关卡。',
+              style: TextStyle(color: tones.muted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _LevelGrid(
+                bestMovesByLevel: _bestMovesByLevel,
+                currentLevelId: _level.id,
+                onLevelTap: _startLevel,
+              ),
+            ),
+          ],
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
     final tones = Theme.of(context).extension<GameBoxTones>()!;
     return Scaffold(
       appBar: AppBar(
-        title: TextButton(
-          onPressed: _pickLevel,
-          child: Text(
-            '华容道 · 第 ${_level.name} 关',
-            style: const TextStyle(fontWeight: FontWeight.w800, color: _accent),
-          ),
-        ),
+        title: Text(_showLevelList ? '华容道' : '华容道 · 第 ${_level.name} 关'),
       ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: _showLevelList
+            ? _buildLevelListPage(tones)
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _pill('步数 ${_board.moves}', tones),
-                      _pill('最佳 ${_best ?? '—'}', tones),
-                      GestureDetector(
-                          onTap: _reset, child: _pill('🔄 重来', tones)),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            _pill('步数 ${_board.moves}', tones),
+                            _pill('最佳 ${_best ?? '—'}', tones),
+                            ElevatedButton.icon(
+                              onPressed: _pickLevel,
+                              icon: const Icon(Icons.grid_view_rounded),
+                              label: const Text('选择关卡'),
+                            ),
+                            GestureDetector(
+                                onTap: _reset, child: _pill('🔄 重来', tones)),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _buildBoard(tones),
+                      ),
+                      const SizedBox(height: 10),
+                      Text('滑动方块，让曹操从下方出口突围',
+                          style: TextStyle(color: tones.muted, fontSize: 13)),
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildBoard(tones),
-                ),
-                const SizedBox(height: 10),
-                Text('滑动方块，让曹操从下方出口突围',
-                    style: TextStyle(color: tones.muted, fontSize: 13)),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
     );
   }
@@ -401,6 +436,122 @@ class _KlotskiScreenState extends State<KlotskiScreen> {
           ],
         );
       },
+    );
+  }
+}
+
+class _LevelGrid extends StatelessWidget {
+  const _LevelGrid({
+    required this.bestMovesByLevel,
+    required this.currentLevelId,
+    required this.onLevelTap,
+  });
+
+  final Map<String, int> bestMovesByLevel;
+  final String currentLevelId;
+  final ValueChanged<KlotskiLevel> onLevelTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tones = Theme.of(context).extension<GameBoxTones>()!;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = (constraints.maxWidth / 68).floor().clamp(4, 8);
+        return GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 0.92,
+          ),
+          itemCount: KlotskiLevel.levels.length,
+          itemBuilder: (context, index) {
+            final level = KlotskiLevel.levels[index];
+            final selected = level.id == currentLevelId;
+            final best = bestMovesByLevel[level.id];
+            return _LevelTile(
+              level: level,
+              best: best,
+              selected: selected,
+              tones: tones,
+              onTap: () => onLevelTap(level),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _LevelTile extends StatelessWidget {
+  const _LevelTile({
+    required this.level,
+    required this.best,
+    required this.selected,
+    required this.tones,
+    required this.onTap,
+  });
+
+  final KlotskiLevel level;
+  final int? best;
+  final bool selected;
+  final GameBoxTones tones;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor =
+        selected ? _accent : tones.muted.withValues(alpha: 0.35);
+    return Material(
+      color: selected ? _accent.withValues(alpha: 0.12) : tones.card,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor, width: selected ? 2 : 1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                level.name,
+                style: TextStyle(
+                  color: selected ? _accent : tones.ink,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                level.category,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: tones.muted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                best == null ? '未完成' : '$best 步',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: best == null ? tones.muted : _accent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
